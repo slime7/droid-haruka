@@ -1,0 +1,304 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 源码分支、标签或提交
+        required: true
+        default: master
+        type: string
+      release_tag:
+        description: 可选标签，必须是 v 加源码版本号
+        required: false
+        default: ""
+        type: string
+      scrcpy_version:
+        description: 可选的 scrcpy 版本，留空使用最新版
+        required: false
+        default: ""
+        type: string
+      prerelease:
+        description: 标记为预发布
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: droid-haruka-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      source_sha: ${{ steps.version.outputs.source_sha }}
+      prerelease: ${{ inputs.prerelease }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout source metadata
+        uses: actions/checkout@v4
+        with:
+          repository: slime7/scrcpy-desktop
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: .source
+          fetch-depth: 1
+
+      - name: Resolve version and create draft release
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./.source/package.json').version")"
+          source_sha="$(git -C .source rev-parse HEAD)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Unsupported package version: $version" >&2
+            exit 1
+          fi
+          tag="v${version}"
+          if [[ -n "$RELEASE_TAG_INPUT" && "$RELEASE_TAG_INPUT" != "$tag" ]]; then
+            echo "release_tag must equal $tag for source version $version" >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists. Delete the draft or bump the source version." >&2
+            exit 1
+          fi
+          notes_file="$RUNNER_TEMP/droid-haruka-release-notes.md"
+          {
+            echo "## Droid Haruka ${version}"
+            echo
+            echo "- Windows x64：NSIS 安装包与便携版"
+            echo "- Linux x64：AppImage 与 tar.gz"
+            echo "- Android：桌面端安装包内置设备端 APK，并提供独立 APK 附件"
+            echo "- 校验：\`SHA256SUMS.txt\`"
+          } > "$notes_file"
+          args=(release create "$tag" "--target" "$GITHUB_SHA" "--title" "Droid Haruka $version" "--notes-file" "$notes_file" "--draft")
+          if [[ "$PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: slime7/scrcpy-desktop
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: source
+          fetch-depth: 1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          package_json_file: source/package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        shell: pwsh
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        working-directory: source
+        shell: pwsh
+        run: pnpm install --frozen-lockfile --reporter=append-only
+
+      - name: Build Android companion
+        working-directory: source
+        shell: pwsh
+        run: pnpm android:apk --stage
+
+      - name: Build Windows virtual camera
+        working-directory: source
+        shell: pwsh
+        run: pnpm build:vcam
+
+      - name: Fetch scrcpy server and adb
+        working-directory: source
+        shell: pwsh
+        env:
+          SCRCPY_VERSION: ${{ inputs.scrcpy_version }}
+        run: |
+          if ($env:SCRCPY_VERSION) {
+            pnpm get-scrcpy -v $env:SCRCPY_VERSION
+          } else {
+            pnpm get-scrcpy
+          }
+
+      - name: Build release
+        working-directory: source
+        shell: pwsh
+        run: |
+          Copy-Item -LiteralPath ../release/build.mjs -Destination scripts/droid-haruka-build.mjs -Force
+          node scripts/droid-haruka-build.mjs
+
+      - name: Upload Windows assets
+        shell: pwsh
+        run: |
+          $releaseFiles = Get-ChildItem -LiteralPath source/dist_electron -File | Where-Object {
+            $_.Name -eq "latest.yml" -or $_.Extension -in ".exe", ".blockmap"
+          }
+          if (-not $releaseFiles) {
+            throw "No Windows release files were produced."
+          }
+          $paths = @($releaseFiles | ForEach-Object { $_.FullName })
+          gh release upload $env:RELEASE_TAG @paths --clobber
+
+  linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: slime7/scrcpy-desktop
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: source
+          fetch-depth: 1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          package_json_file: source/package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        working-directory: source
+        run: pnpm install --frozen-lockfile --reporter=append-only
+
+      - name: Build Android companion
+        working-directory: source
+        run: pnpm android:apk --stage
+
+      - name: Fetch scrcpy server and adb
+        working-directory: source
+        env:
+          SCRCPY_VERSION: ${{ inputs.scrcpy_version }}
+        run: |
+          if [[ -n "$SCRCPY_VERSION" ]]; then
+            pnpm get-scrcpy -v "$SCRCPY_VERSION"
+          else
+            pnpm get-scrcpy
+          fi
+
+      - name: Build release
+        working-directory: source
+        run: |
+          cp ../release/build.mjs scripts/droid-haruka-build.mjs
+          node scripts/droid-haruka-build.mjs
+
+      - name: Upload Linux assets
+        run: |
+          shopt -s nullglob
+          assets=(source/dist_electron/*.AppImage source/dist_electron/*.tar.gz source/dist_electron/latest-linux.yml source/dist_electron/*.blockmap)
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "No Linux release files were produced." >&2
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          cp source/src/android/app/build/outputs/apk/debug/companion-debug.apk "droid-haruka-companion-${VERSION}.apk"
+          gh release upload "$RELEASE_TAG" "droid-haruka-companion-${VERSION}.apk" --clobber
+
+  finalize:
+    needs:
+      - prepare
+      - windows
+      - linux
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download release assets
+        run: |
+          mkdir -p release-assets
+          gh release download "$RELEASE_TAG" --dir release-assets --pattern "*"
+
+      - name: Write checksums
+        working-directory: release-assets
+        run: |
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%f\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS.txt
+
+      - name: Publish release
+        run: |
+          gh release upload "$RELEASE_TAG" release-assets/SHA256SUMS.txt --clobber
+          if [[ "$PRERELEASE" == "true" ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false
+          else
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi
