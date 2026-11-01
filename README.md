@@ -25,3 +25,13 @@ macOS 不在支持范围内。
 - [最新版本](https://github.com/slime7/droid-haruka/releases/latest)
 - [全部发行版](https://github.com/slime7/droid-haruka/releases)
 - [问题反馈](https://github.com/slime7/droid-haruka/issues)
+
+## 发行构建
+
+发行工作流从源码仓库检出代码并执行 `pnpm build:release`，同时生成桌面安装包与无 debug 标记的 release APK。
+release APK 使用独立证书签名，证书与口令由以下仓库 Secrets 传入：
+
+- `ANDROID_RELEASE_KEYSTORE_BASE64`
+- `ANDROID_RELEASE_KEYSTORE_PASSWORD`
+- `ANDROID_RELEASE_KEY_ALIAS`
+- `ANDROID_RELEASE_KEY_PASSWORD`

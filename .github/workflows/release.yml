@@ -103,6 +103,10 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       GH_TOKEN: ${{ github.token }}
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+      ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+      ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -147,11 +151,6 @@ jobs:
         working-directory: source
         shell: pwsh
         run: pnpm install --frozen-lockfile --reporter=append-only
-
-      - name: Build Android companion
-        working-directory: source
-        shell: pwsh
-        run: pnpm android:apk --stage
 
       - name: Build Windows virtual camera
         working-directory: source
@@ -173,9 +172,7 @@ jobs:
       - name: Build release
         working-directory: source
         shell: pwsh
-        run: |
-          Copy-Item -LiteralPath ../release/build.mjs -Destination scripts/droid-haruka-build.mjs -Force
-          node scripts/droid-haruka-build.mjs
+        run: pnpm build:release
 
       - name: Upload Windows assets
         shell: pwsh
@@ -197,6 +194,10 @@ jobs:
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
       VERSION: ${{ needs.prepare.outputs.version }}
       GH_TOKEN: ${{ github.token }}
+      ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+      ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+      ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -240,10 +241,6 @@ jobs:
         working-directory: source
         run: pnpm install --frozen-lockfile --reporter=append-only
 
-      - name: Build Android companion
-        working-directory: source
-        run: pnpm android:apk --stage
-
       - name: Fetch scrcpy server and adb
         working-directory: source
         env:
@@ -257,9 +254,7 @@ jobs:
 
       - name: Build release
         working-directory: source
-        run: |
-          cp ../release/build.mjs scripts/droid-haruka-build.mjs
-          node scripts/droid-haruka-build.mjs
+        run: pnpm build:release
 
       - name: Upload Linux assets
         run: |
@@ -270,7 +265,7 @@ jobs:
             exit 1
           fi
           gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
-          cp source/src/android/app/build/outputs/apk/debug/companion-debug.apk "droid-haruka-companion-${VERSION}.apk"
+          cp source/src/android/app/build/outputs/apk/release/companion-release.apk "droid-haruka-companion-${VERSION}.apk"
           gh release upload "$RELEASE_TAG" "droid-haruka-companion-${VERSION}.apk" --clobber
 
   finalize:
