@@ -1,0 +1,56 @@
+name: Finalize release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要补全校验文件并发布的发行标签
+        required: true
+        type: string
+      prerelease:
+        description: 标记为预发布
+        required: true
+        default: false
+        type: boolean
+      publish:
+        description: 发布为正式版本
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: droid-haruka-finalize-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      PRERELEASE: ${{ inputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download release assets
+        run: |
+          mkdir -p release-assets
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets --pattern "*"
+
+      - name: Write checksums
+        working-directory: release-assets
+        run: |
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%f\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS.txt
+
+      - name: Upload checksums
+        run: gh release upload "$RELEASE_TAG" release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Publish release
+        if: ${{ inputs.publish }}
+        run: |
+          if [[ "$PRERELEASE" == "true" ]]; then
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          else
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          fi

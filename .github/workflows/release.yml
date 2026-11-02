@@ -404,7 +404,7 @@ jobs:
       - name: Download release assets
         run: |
           mkdir -p release-assets
-          gh release download "$RELEASE_TAG" --dir release-assets --pattern "*"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets --pattern "*"
 
       - name: Write checksums
         working-directory: release-assets
@@ -413,9 +413,9 @@ jobs:
 
       - name: Publish release
         run: |
-          gh release upload "$RELEASE_TAG" release-assets/SHA256SUMS.txt --clobber
+          gh release upload "$RELEASE_TAG" release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
           if [[ "$PRERELEASE" == "true" ]]; then
-            gh release edit "$RELEASE_TAG" --draft=false
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
           else
-            gh release edit "$RELEASE_TAG" --draft=false --latest
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
           fi
