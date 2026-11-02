@@ -22,6 +22,7 @@ const releaseUrl = computed(() => release.value?.html_url ?? releasesUrl);
 
 const platformItems = [
   { icon: 'desktop_windows', label: 'Windows 10/11' },
+  { icon: 'computer', label: 'Linux x64' },
   { icon: 'android', label: 'Android 11+' },
 ];
 
@@ -67,7 +68,7 @@ function scrollToSection(id) {
               class="eyebrow__dot"
               aria-hidden="true"
             />
-            <span>Windows 桌面客户端</span>
+            <span>Windows / Linux 桌面客户端</span>
           </div>
 
           <mat-text
@@ -192,7 +193,7 @@ function scrollToSection(id) {
   position: relative;
   isolation: isolate;
   overflow: clip;
-  padding-block: clamp(40px, 6vw, 86px) clamp(28px, 5vw, 56px);
+  padding-block: clamp(40px, 6vw, 86px) clamp(72px, 8vw, 104px);
 }
 
 .hero__decor {
@@ -225,9 +226,9 @@ function scrollToSection(id) {
 }
 
 .hero__shape--flower {
-  inset-block-end: -110px;
-  inset-inline-start: -90px;
-  opacity: 0.32;
+  inset-block-end: 12px;
+  inset-inline-start: 20px;
+  opacity: 0.2;
 }
 
 .hero__grid-layout {
@@ -413,7 +414,7 @@ function scrollToSection(id) {
 .hero-phone {
   position: absolute;
   z-index: 3;
-  inset-block-end: 4px;
+  inset-block-end: 18px;
   inset-inline-start: -45px;
   inline-size: 150px;
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const platform = ref('windows');
 
@@ -13,9 +13,35 @@ const platforms = [
     tag: '推荐',
     title: 'Windows 桌面端',
     version: 'Windows 10 / 11 · x64',
-    items: [
-      'NSIS 安装包与便携版',
-      'Windows 11 22H2 起支持虚拟摄像头',
+    versions: [
+      {
+        label: 'Windows 10 x64',
+        description: '主窗口、设备管理、整屏镜像、独立虚拟屏，以及开机启动、系统托盘和自动更新。',
+      },
+      {
+        label: 'Windows 11 22H2+',
+        description: '新增系统虚拟摄像头；设备相机来源需要 Android 12 及以上。',
+      },
+    ],
+  },
+  {
+    value: 'linux',
+    label: 'Linux',
+    icon: 'computer',
+    shape: 'gem',
+    tone: 'secondary',
+    tag: 'x64',
+    title: 'Linux 桌面端',
+    version: 'Linux x64',
+    versions: [
+      {
+        label: 'Linux x64',
+        description: '整屏镜像、独立虚拟屏、设备管理、应用列表与自动更新。',
+      },
+      {
+        label: '功能差异',
+        description: '不包含系统虚拟摄像头与开机启动。',
+      },
     ],
   },
   {
@@ -26,13 +52,29 @@ const platforms = [
     tone: 'tertiary',
     tag: 'minSdk 30',
     title: 'Android 设备端',
-    version: 'Android 11 及以上 · minSdk 30',
-    items: [
-      '基础配对与设备管理可使用 ADB',
-      '画面采集与输入法接管需要 Shizuku',
+    version: 'Android 11 及以上',
+    versions: [
+      {
+        label: 'Android 11 · API 30',
+        description: '整屏镜像、独立虚拟屏、无线调试与配对、应用列表、剪贴板、投屏输入法、通知转发与文件传输。',
+      },
+      {
+        label: 'Android 12 · API 31',
+        description: '新增摄像头采集，可为虚拟摄像头提供画面。',
+      },
+      {
+        label: 'Android 13 · API 33',
+        description: '新增按应用音频隔离。',
+      },
+      {
+        label: 'Android 16 · API 36',
+        description: '新增桌面相机，虚拟屏应用可读取电脑桌面画面。',
+      },
     ],
   },
 ];
+
+const visiblePlatforms = computed(() => platforms.filter((item) => item.value === platform.value));
 </script>
 
 <template>
@@ -64,7 +106,7 @@ const platforms = [
           size="large"
           class="section-lead"
         >
-          桌面端支持 64 位 Windows，设备端最低为 Android 11。
+          桌面端支持 64 位 Windows 与 Linux；设备端最低为 Android 11，部分功能需要更高版本。
         </mat-text>
       </div>
 
@@ -85,7 +127,7 @@ const platforms = [
         />
 
         <mat-tab-content
-          v-for="item in platforms"
+          v-for="item in visiblePlatforms"
           :key="`content-${item.value}`"
           :value="item.value"
         >
@@ -131,19 +173,15 @@ const platforms = [
 
                 <mat-divider class="requirement-card__divider" />
 
-                <ul class="requirement-card__list">
-                  <li
-                    v-for="line in item.items"
-                    :key="line"
+                <dl class="requirement-versions">
+                  <div
+                    v-for="versionItem in item.versions"
+                    :key="versionItem.label"
                   >
-                    <mat-icon
-                      icon="check_circle"
-                      size="small"
-                      aria-hidden="true"
-                    />
-                    {{ line }}
-                  </li>
-                </ul>
+                    <dt>{{ versionItem.label }}</dt>
+                    <dd>{{ versionItem.description }}</dd>
+                  </div>
+                </dl>
               </mat-card-content>
             </mat-card>
           </div>
@@ -228,6 +266,10 @@ const platforms = [
   color: var(--mat-sys-color-on-primary-container);
 }
 
+.requirement-card__shape--secondary {
+  color: var(--mat-sys-color-on-secondary-container);
+}
+
 .requirement-card__shape--tertiary {
   color: var(--mat-sys-color-on-tertiary-container);
 }
@@ -259,28 +301,41 @@ const platforms = [
   margin-block: 20px 16px;
 }
 
-.requirement-card__list {
+.requirement-versions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 11px 24px;
+  gap: 0;
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.requirement-card__list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
+.requirement-versions > div {
+  display: grid;
+  grid-template-columns: minmax(128px, 0.32fr) minmax(0, 1fr);
+  gap: 18px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--mat-sys-color-outline-variant);
+}
+
+.requirement-versions > div:first-child {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.requirement-versions > div:last-child {
+  padding-block-end: 0;
+}
+
+.requirement-versions dt {
+  color: var(--mat-sys-color-on-surface);
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 1.6;
+}
+
+.requirement-versions dd {
+  margin: 0;
   color: var(--mat-sys-color-on-surface-variant);
-  font-size: 13.5px;
-  line-height: 1.55;
-}
-
-.requirement-card__list .mat-icon {
-  flex: none;
-  margin-block-start: 1px;
-  color: var(--mat-sys-color-primary);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 @media (max-width: 900px) {
@@ -307,8 +362,9 @@ const platforms = [
     align-items: flex-start;
   }
 
-  .requirement-card__list {
+  .requirement-versions > div {
     grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
 }
 </style>

@@ -1,0 +1,23 @@
+{
+  "name": "Droid Haruka",
+  "short_name": "Droid Haruka",
+  "description": "面向 Windows 与 Linux 的 Android 投屏与多窗口桌面客户端。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f5ee",
+  "theme_color": "#3ddc84",
+  "icons": [
+    {
+      "src": "app-icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "app-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}

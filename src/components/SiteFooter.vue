@@ -90,7 +90,7 @@ const footerLinks = [
 
       <div class="site-footer__bottom">
         <span>© {{ year }} Slime7</span>
-        <span>Windows 10 / 11 · Android 11+</span>
+        <span>Windows 10 / 11 · Linux · Android 11+</span>
       </div>
     </mat-container>
   </footer>

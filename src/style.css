@@ -50,6 +50,7 @@ body::before {
 
 #app {
   display: block;
+  overflow-x: clip;
 }
 
 main {

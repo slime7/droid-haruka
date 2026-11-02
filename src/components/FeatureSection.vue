@@ -25,25 +25,47 @@ const features = [
     layout: 'default',
   },
   {
-    id: 'wireless',
-    art: 'wireless',
-    shape: 'puffy',
-    tone: 'secondary',
-    icon: 'wifi_tethering',
-    tag: '无线调试',
-    title: '配对码不必再绕路',
-    description: '配对码、mDNS 发现与端口变化重连，都收在同一张设备卡片里。',
-    layout: 'default',
-  },
-  {
     id: 'camera',
     art: 'camera',
     shape: 'very-sunny',
     tone: 'primary',
     icon: 'videocam',
-    tag: 'Windows 11',
+    tag: 'Windows 11 22H2',
     title: '手机摄像头，变成系统摄像头',
-    description: '把设备相机提供给会议与直播应用，无需额外采集卡。',
+    description: '把设备相机提供给会议、直播与扫码应用，无需额外采集卡。',
+    layout: 'default',
+  },
+  {
+    id: 'scan',
+    art: 'scan',
+    shape: 'puffy',
+    tone: 'secondary',
+    icon: 'qr_code_scanner',
+    tag: '不拿起手机扫码',
+    title: '扫码时，手机留在支架上',
+    description: '电脑应用直接调用手机相机，二维码与条码都能在桌面完成。',
+    layout: 'default',
+  },
+  {
+    id: 'notifications',
+    art: 'notifications',
+    shape: 'gem',
+    tone: 'tertiary',
+    icon: 'notifications_active',
+    tag: '应用通知',
+    title: '通知在桌面即时出现',
+    description: 'Android 应用通知同步到 Windows，不必反复点亮手机查看。',
+    layout: 'default',
+  },
+  {
+    id: 'input',
+    art: 'input',
+    shape: '6-sided-cookie',
+    tone: 'primary',
+    icon: 'keyboard',
+    tag: '输入转发',
+    title: '电脑键盘直接输入',
+    description: '键盘、快捷键与中文输入法转发到镜像窗口，输入保持连贯。',
     layout: 'default',
   },
   {
@@ -64,9 +86,9 @@ const features = [
     tone: 'tertiary',
     icon: 'sync_alt',
     tag: '文件与剪贴板',
-    title: '文件、剪贴板与通知一起流动',
-    description: '拖放文件、双向剪贴板、通知转发，让电脑和手机保持同一工作节奏。',
-    layout: 'full',
+    title: '文件与剪贴板一起流动',
+    description: '拖放文件、双向剪贴板，让电脑和手机保持同一工作节奏。',
+    layout: 'default',
   },
 ];
 
@@ -104,7 +126,7 @@ function reveal(isIntersecting, entries) {
           size="large"
           class="section-lead"
         >
-          从整屏镜像到应用独立成窗，Droid Haruka 把 Android 的使用方式带进熟悉的桌面环境。
+          从整屏镜像到应用独立成窗，通知、输入与文件也一并接入桌面。
         </mat-text>
       </div>
 
@@ -274,6 +296,14 @@ function reveal(isIntersecting, entries) {
   animation-delay: 390ms;
 }
 
+.feature-grid.is-visible .feature-card:nth-child(7) {
+  animation-delay: 460ms;
+}
+
+.feature-grid.is-visible .feature-card:nth-child(8) {
+  animation-delay: 530ms;
+}
+
 @keyframes card-in {
   to {
     opacity: 1;
@@ -289,19 +319,6 @@ function reveal(isIntersecting, entries) {
   grid-column: span 2;
 }
 
-.feature-card--full {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-}
-
-.feature-card--full .feature-art {
-  block-size: 100%;
-  min-block-size: 190px;
-  border-inline-end: 1px solid var(--mat-sys-color-outline-variant);
-  border-block-end: 0;
-}
-
 .feature-card__content {
   display: flex;
   flex: 1;
@@ -311,11 +328,6 @@ function reveal(isIntersecting, entries) {
 
 .feature-card--wide .feature-card__content {
   padding: 22px 24px 24px;
-}
-
-.feature-card--full .feature-card__content {
-  justify-content: center;
-  padding: 26px 30px;
 }
 
 .feature-card__meta {
@@ -380,7 +392,7 @@ function reveal(isIntersecting, entries) {
   }
 
   .feature-card--wide,
-  .feature-card--full {
+  .feature-card:last-child {
     grid-column: 1 / -1;
   }
 }
@@ -390,18 +402,9 @@ function reveal(isIntersecting, entries) {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .feature-card--full {
-    display: flex;
-  }
-
-  .feature-card--full .feature-art {
-    min-block-size: 154px;
-    border-inline-end: 0;
-    border-block-end: 1px solid var(--mat-sys-color-outline-variant);
-  }
-
-  .feature-card--full .feature-card__content {
-    padding: 20px 22px 22px;
+  .feature-card--wide,
+  .feature-card:last-child {
+    grid-column: auto;
   }
 }
 

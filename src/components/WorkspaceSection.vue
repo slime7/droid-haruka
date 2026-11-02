@@ -79,8 +79,6 @@ function scrollToDownload() {
             class="workspace-art"
             aria-hidden="true"
           >
-            <span class="workspace-art__label">SESSION / 01</span>
-
             <mat-card
               class="ws-window ws-window--messages"
               variant="elevated"
@@ -95,7 +93,19 @@ function scrollToDownload() {
                 <span class="ws-bubble ws-bubble--one" />
                 <span class="ws-bubble ws-bubble--two" />
                 <span class="ws-bubble ws-bubble--three" />
+                <span class="ws-bubble ws-bubble--four" />
               </div>
+            </mat-card>
+
+            <mat-card
+              class="ws-window ws-window--camera"
+              variant="elevated"
+              rounded="large"
+            >
+              <span class="ws-title"><mat-icon icon="videocam" size="14px" /> Camera</span>
+              <span class="ws-camera">
+                <span class="ws-camera__badge"><i />CAM → PC</span>
+              </span>
             </mat-card>
 
             <mat-card
@@ -106,20 +116,6 @@ function scrollToDownload() {
               <span class="ws-title"><mat-icon icon="map" size="14px" /> Maps</span>
               <span class="ws-map"><i /><i /><b /></span>
             </mat-card>
-
-            <mat-card
-              class="ws-window ws-window--camera"
-              variant="elevated"
-              rounded="large"
-            >
-              <span class="ws-title"><mat-icon icon="videocam" size="14px" /> Camera</span>
-              <span class="ws-camera">
-                <span class="ws-camera__lens" />
-                <span class="ws-camera__text">CAM → PC</span>
-              </span>
-            </mat-card>
-
-            <span class="ws-connection"><i />Wi-Fi 6 · 24 ms</span>
           </div>
         </div>
       </mat-card>
@@ -230,17 +226,6 @@ function scrollToDownload() {
   min-block-size: 440px;
 }
 
-.workspace-art__label {
-  position: absolute;
-  inset-block-start: 2px;
-  inset-inline-start: 4px;
-  color: color-mix(in srgb, var(--mat-sys-color-inverse-on-surface) 44%, transparent);
-  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-}
-
 .ws-window {
   position: absolute;
   overflow: hidden;
@@ -261,11 +246,11 @@ function scrollToDownload() {
 
 .ws-window--messages {
   z-index: 2;
-  inset-block-start: 24px;
-  inset-inline-start: 2%;
-  inline-size: min(64%, 310px);
-  block-size: 218px;
-  rotate: -2.4deg;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 58%;
+  block-size: 214px;
+  rotate: -1.6deg;
   box-shadow: 0 24px 48px rgb(4 12 7 / 26%);
 }
 
@@ -296,20 +281,29 @@ function scrollToDownload() {
   block-size: 20px;
 }
 
+.ws-bubble--four {
+  grid-column: 2;
+  inline-size: 44%;
+  block-size: 22px;
+  background: var(--mat-sys-color-surface-container-high);
+  border-radius: 12px 4px 12px 12px;
+  justify-self: start;
+}
+
 .ws-window--maps {
-  z-index: 3;
-  inset-block-end: 32px;
-  inset-inline-end: 0;
-  inline-size: min(57%, 260px);
-  block-size: 208px;
-  rotate: 2.8deg;
-  box-shadow: 0 24px 48px rgb(4 12 7 / 24%);
+  z-index: 1;
+  inset-block-end: 0;
+  inset-inline-start: 16%;
+  inline-size: 68%;
+  block-size: 196px;
+  rotate: -0.8deg;
+  box-shadow: 0 20px 44px rgb(4 12 7 / 22%);
 }
 
 .ws-map {
   position: relative;
   display: block;
-  block-size: 136px;
+  block-size: 152px;
   margin: 9px 11px;
   overflow: hidden;
   background:
@@ -342,67 +336,68 @@ function scrollToDownload() {
 }
 
 .ws-window--camera {
-  z-index: 4;
-  inset-block-start: 104px;
-  inset-inline-end: 1%;
-  inline-size: min(36%, 166px);
-  block-size: 160px;
-  rotate: 5deg;
-  box-shadow: 0 20px 40px rgb(4 12 7 / 22%);
+  z-index: 3;
+  inset-block-start: 14px;
+  inset-inline-end: 0;
+  inline-size: 38%;
+  block-size: 214px;
+  rotate: 1.8deg;
+  box-shadow: 0 22px 44px rgb(4 12 7 / 24%);
 }
 
 .ws-camera {
   position: relative;
-  display: grid;
-  place-items: center;
-  block-size: 92px;
-  margin: 8px 10px;
+  display: block;
+  block-size: 168px;
+  margin: 8px 10px 10px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--mat-sys-color-primary) 28%, transparent), transparent 56%),
-    var(--mat-sys-color-surface-container-high);
+    radial-gradient(circle at 64% 30%, color-mix(in srgb, var(--mat-sys-color-primary) 42%, transparent), transparent 34%),
+    radial-gradient(circle at 24% 82%, color-mix(in srgb, var(--mat-sys-color-tertiary) 38%, transparent), transparent 42%),
+    linear-gradient(150deg, color-mix(in srgb, var(--mat-sys-color-surface-container-high) 72%, var(--mat-sys-color-primary)), var(--mat-sys-color-surface-container-low));
   border-radius: 10px;
 }
 
-.ws-camera__lens {
-  inline-size: 38px;
-  block-size: 38px;
-  background: radial-gradient(circle at 36% 30%, #a9ffcb, #1f9d5b 46%, #0d2c1b 74%);
-  border: 3px solid var(--mat-sys-color-surface);
-  border-radius: 50%;
+.ws-camera::before {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--mat-sys-color-primary) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--mat-sys-color-primary) 18%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+  content: '';
+  opacity: 0.3;
 }
 
-.ws-camera__text {
+.ws-camera::after {
   position: absolute;
-  inset-block-end: 6px;
-  color: var(--mat-sys-color-primary);
+  inset: 12px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-color-primary) 46%, transparent);
+  border-radius: 7px;
+  content: '';
+}
+
+.ws-camera__badge {
+  position: absolute;
+  z-index: 1;
+  inset-block-end: 9px;
+  inset-inline-start: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  color: var(--mat-sys-color-on-surface);
+  background: color-mix(in srgb, var(--mat-sys-color-surface) 82%, transparent);
+  border-radius: 999px;
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.1em;
 }
 
-.ws-connection {
-  position: absolute;
-  z-index: 5;
-  inset-block-end: 8px;
-  inset-inline-start: 6%;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  color: var(--mat-sys-color-on-surface);
-  background: var(--mat-sys-color-surface);
-  border: 1px solid var(--mat-sys-color-outline-variant);
-  border-radius: 999px;
-  box-shadow: var(--mat-sys-elevation-level1);
-  font-size: 9px;
-  font-weight: 650;
-}
-
-.ws-connection i {
-  inline-size: 6px;
-  block-size: 6px;
+.ws-camera__badge i {
+  inline-size: 5px;
+  block-size: 5px;
   background: var(--mat-sys-color-primary);
   border-radius: 50%;
 }
@@ -417,7 +412,7 @@ function scrollToDownload() {
   }
 
   .workspace-art {
-    min-block-size: 410px;
+    min-block-size: 440px;
     max-inline-size: 560px;
     inline-size: 100%;
     justify-self: center;
@@ -430,17 +425,22 @@ function scrollToDownload() {
   }
 
   .workspace-art {
-    min-block-size: 340px;
+    min-block-size: 360px;
   }
 
   .ws-window--messages {
-    inline-size: 74%;
-    block-size: 196px;
+    inline-size: 72%;
+    block-size: 190px;
   }
 
   .ws-window--maps {
-    inline-size: 62%;
-    block-size: 182px;
+    inset-inline-start: 20%;
+    inline-size: 66%;
+    block-size: 168px;
+  }
+
+  .ws-map {
+    block-size: 124px;
   }
 
   .ws-window--camera {

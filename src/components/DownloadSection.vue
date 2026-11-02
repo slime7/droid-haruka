@@ -1,32 +1,11 @@
 <script setup>
-import { computed } from 'vue';
 import { useLatestRelease } from '../composables/useLatestRelease.js';
 
 const appIcon = `${import.meta.env.BASE_URL}app-icon.png`;
 const {
-  status,
-  version,
-  publishedAt,
   downloadUrl,
-  downloadName,
-  checksumUrl,
-  checksumName,
   releasesUrl,
 } = useLatestRelease();
-
-const stateText = computed(() => {
-  if (status.value === 'loading') {
-    return '正在获取最新版本';
-  }
-  if (status.value === 'error') {
-    return '发行信息见 GitHub';
-  }
-  return '已同步 GitHub Releases';
-});
-
-const checksumLabel = computed(() => (
-  checksumName.value === '在发行页查看校验信息' ? '校验信息' : checksumName.value
-));
 
 function openDownload() {
   window.open(downloadUrl.value, '_blank', 'noopener');
@@ -129,80 +108,20 @@ function openReleases() {
             </ul>
           </div>
 
-          <mat-card
-            class="release-card"
-            variant="elevated"
-            rounded="large"
+          <div
+            class="download-mark"
+            aria-hidden="true"
           >
-            <div class="release-card__head">
-              <mat-avatar
-                :src="appIcon"
-                :size="52"
-                aria-hidden="true"
-              />
-              <div>
-                <mat-text
-                  as="p"
-                  type="title"
-                  size="medium"
-                  emphasized
-                  class="release-card__name"
-                >
-                  Droid Haruka
-                </mat-text>
-                <mat-text
-                  as="p"
-                  type="body"
-                  size="small"
-                  class="release-card__platform"
-                >
-                  Windows 10 / 11 · x64
-                </mat-text>
-              </div>
-              <span
-                class="release-card__state"
-                :class="`release-card__state--${status}`"
-                aria-live="polite"
-              >
-                <i aria-hidden="true" />{{ stateText }}
-              </span>
-            </div>
-
-            <mat-divider class="release-card__divider" />
-
-            <dl class="release-meta">
-              <div>
-                <dt>最新版本</dt>
-                <dd>{{ version }}</dd>
-              </div>
-              <div>
-                <dt>发布日期</dt>
-                <dd>{{ publishedAt }}</dd>
-              </div>
-              <div>
-                <dt>安装包</dt>
-                <dd class="release-meta__file">{{ downloadName }}</dd>
-              </div>
-              <div>
-                <dt>校验</dt>
-                <dd>
-                  <a
-                    :href="checksumUrl"
-                    target="_blank"
-                    rel="noreferrer"
-                    class="release-meta__link"
-                  >
-                    {{ checksumLabel }}
-                    <mat-icon
-                      icon="arrow_outward"
-                      size="small"
-                      aria-hidden="true"
-                    />
-                  </a>
-                </dd>
-              </div>
-            </dl>
-          </mat-card>
+            <span class="download-mark__halo" />
+            <img
+              :src="appIcon"
+              class="download-mark__icon"
+              width="132"
+              height="132"
+              alt=""
+            >
+            <span class="download-mark__caption">Windows 10 / 11 · x64</span>
+          </div>
         </div>
       </mat-card>
     </mat-container>
@@ -244,10 +163,14 @@ function openReleases() {
 .download-layout {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   gap: clamp(28px, 5vw, 56px);
   align-items: center;
   padding: clamp(28px, 5vw, 58px);
+}
+
+.download-copy {
+  max-inline-size: 58ch;
 }
 
 .download-kicker {
@@ -318,108 +241,41 @@ function openReleases() {
   color: var(--mat-sys-color-on-primary-container);
 }
 
-.release-card {
-  box-shadow: var(--mat-sys-elevation-level3);
+.download-mark {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
 }
 
-.release-card__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 20px 16px;
-}
-
-.release-card__name {
-  margin: 0;
-  line-height: 1.2;
-}
-
-.release-card__platform {
-  display: block;
-  margin-block-start: 2px;
-  color: var(--mat-sys-color-on-surface-variant);
-}
-
-.release-card__state {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-inline-start: auto;
-  padding: 4px 9px;
-  color: var(--mat-sys-color-on-surface-variant);
-  background: var(--mat-sys-color-surface-container-high);
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.release-card__state i {
-  inline-size: 5px;
-  block-size: 5px;
-  background: currentColor;
+.download-mark__halo {
+  position: absolute;
+  inset-block-start: 42%;
+  inset-inline-start: 50%;
+  inline-size: clamp(210px, 26vw, 290px);
+  block-size: clamp(210px, 26vw, 290px);
+  background: radial-gradient(circle, color-mix(in srgb, var(--mat-sys-color-primary) 34%, transparent), transparent 68%);
   border-radius: 50%;
+  translate: -50% -50%;
 }
 
-.release-card__state--ready {
-  color: var(--mat-sys-color-primary);
+.download-mark__icon {
+  position: relative;
+  z-index: 1;
+  inline-size: clamp(104px, 12vw, 132px);
+  block-size: auto;
+  border-radius: 28px;
+  filter: drop-shadow(0 24px 40px rgb(4 12 7 / 26%));
 }
 
-.release-card__state--error {
-  color: var(--mat-sys-color-on-surface-variant);
-}
-
-.release-card__divider {
-  margin-inline: 20px;
-}
-
-.release-meta {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 16px 20px;
-}
-
-.release-meta > div {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
-}
-
-.release-meta dt {
-  color: var(--mat-sys-color-on-surface-variant);
-  font-size: 10.5px;
-}
-
-.release-meta dd {
-  min-inline-size: 0;
-  margin: 0;
-  color: var(--mat-sys-color-on-surface);
+.download-mark__caption {
+  position: relative;
+  z-index: 1;
+  color: color-mix(in srgb, var(--mat-sys-color-on-primary-container) 68%, transparent);
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
-  font-size: 10.5px;
-  font-weight: 600;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.release-meta__file {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.release-meta__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--mat-sys-color-primary);
-  text-decoration: none;
-}
-
-.release-meta__link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 980px) {
@@ -427,8 +283,10 @@ function openReleases() {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .release-card {
-    max-inline-size: 560px;
+  .download-mark {
+    justify-self: start;
+    gap: 12px;
+    margin-block-start: 8px;
   }
 }
 
@@ -437,25 +295,8 @@ function openReleases() {
     padding: 24px 18px 26px;
   }
 
-  .release-card__head {
-    flex-wrap: wrap;
-    padding: 16px 16px 12px;
-  }
-
-  .release-card__state {
-    margin-inline-start: 0;
-  }
-
-  .release-card__divider {
-    margin-inline: 16px;
-  }
-
-  .release-meta {
-    padding: 14px 16px;
-  }
-
-  .release-meta > div {
-    grid-template-columns: 64px minmax(0, 1fr);
+  .download-mark__icon {
+    inline-size: 92px;
   }
 }
 </style>

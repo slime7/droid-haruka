@@ -14,6 +14,11 @@ const faqs = [
     title: '手机要怎么连接？',
     answer: '可以先通过 USB 开启调试后连接，也可以使用无线调试配对。设备端 App、scrcpy 采集器和 adb 都会随桌面端安装包准备。',
   },
+  {
+    value: 'versions',
+    title: '各功能需要什么系统版本？',
+    answer: '桌面端支持 Windows 10/11 x64 与 Linux x64，Windows 11 22H2 起支持虚拟摄像头。设备端最低为 Android 11；Android 12 起支持摄像头采集，Android 13 起支持按应用音频隔离，Android 16 起支持桌面相机。',
+  },
 ];
 
 function openIssues() {
