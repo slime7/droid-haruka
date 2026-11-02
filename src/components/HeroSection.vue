@@ -23,9 +23,6 @@ const releaseUrl = computed(() => release.value?.html_url ?? releasesUrl);
 const platformItems = [
   { icon: 'desktop_windows', label: 'Windows 10/11' },
   { icon: 'android', label: 'Android 11+' },
-  { icon: 'speed', label: 'WebCodecs' },
-  { icon: 'wifi_tethering', label: '无线调试' },
-  { icon: 'verified_user', label: 'Shizuku' },
 ];
 
 function openDownload() {
@@ -71,7 +68,6 @@ function scrollToSection(id) {
               aria-hidden="true"
             />
             <span>Windows 桌面客户端</span>
-            <span class="eyebrow__version">{{ displayVersion }}</span>
           </div>
 
           <mat-text
@@ -142,7 +138,7 @@ function scrollToSection(id) {
 
           <ul
             class="platform-rail"
-            aria-label="平台与技术支持"
+            aria-label="支持平台"
           >
             <li
               v-for="item in platformItems"
@@ -267,13 +263,6 @@ function scrollToSection(id) {
   background: var(--mat-sys-color-primary);
   border-radius: 50%;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--mat-sys-color-primary) 18%, transparent);
-}
-
-.eyebrow__version {
-  padding-inline-start: 10px;
-  color: var(--mat-sys-color-primary);
-  border-inline-start: 1px solid var(--mat-sys-color-outline-variant);
-  font-variant-numeric: tabular-nums;
 }
 
 .hero__title {

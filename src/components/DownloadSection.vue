@@ -202,12 +202,6 @@ function openReleases() {
                 </dd>
               </div>
             </dl>
-
-            <mat-divider class="release-card__divider" />
-
-            <p class="release-card__note">
-              发行包附带 SHA-256 校验值。下载后可在发行页核对文件完整性。
-            </p>
           </mat-card>
         </div>
       </mat-card>
@@ -428,14 +422,6 @@ function openReleases() {
   text-underline-offset: 3px;
 }
 
-.release-card__note {
-  margin: 0;
-  padding: 14px 20px 18px;
-  color: var(--mat-sys-color-on-surface-variant);
-  font-size: 10.5px;
-  line-height: 1.65;
-}
-
 @media (max-width: 980px) {
   .download-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -470,10 +456,6 @@ function openReleases() {
 
   .release-meta > div {
     grid-template-columns: 64px minmax(0, 1fr);
-  }
-
-  .release-card__note {
-    padding-inline: 16px;
   }
 }
 </style>

@@ -7,13 +7,6 @@ import RequirementsSection from './components/RequirementsSection.vue';
 import DownloadSection from './components/DownloadSection.vue';
 import FaqSection from './components/FaqSection.vue';
 import SiteFooter from './components/SiteFooter.vue';
-import { useLatestRelease } from './composables/useLatestRelease.js';
-
-const { downloadUrl } = useLatestRelease();
-
-function openDownload() {
-  window.open(downloadUrl.value, '_blank', 'noopener');
-}
 </script>
 
 <template>
@@ -35,14 +28,5 @@ function openDownload() {
     </main>
 
     <SiteFooter />
-
-    <mat-fab
-      app
-      size="small"
-      icon="download"
-      label="下载最新版"
-      class="promo-fab"
-      @click="openDownload"
-    />
   </mat-app-root>
 </template>

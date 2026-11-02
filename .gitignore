@@ -5,3 +5,7 @@ Thumbs.db
 node_modules/
 release-assets/
 *.log
+
+# 构建产物
+site/
+dist/

@@ -14,16 +14,6 @@ const faqs = [
     title: '手机要怎么连接？',
     answer: '可以先通过 USB 开启调试后连接，也可以使用无线调试配对。设备端 App、scrcpy 采集器和 adb 都会随桌面端安装包准备。',
   },
-  {
-    value: 'camera',
-    title: '虚拟摄像头有什么要求？',
-    answer: '虚拟摄像头需要 Windows 11 22H2 及以上系统。较低版本的 Windows 仍可使用镜像、虚拟屏、文件与剪贴板功能。',
-  },
-  {
-    value: 'update',
-    title: '更新从哪里来？',
-    answer: '安装版从 GitHub Releases 检查更新。发布页同时提供 SHA-256 校验文件，便于在安装前核对下载内容。',
-  },
 ];
 
 function openIssues() {

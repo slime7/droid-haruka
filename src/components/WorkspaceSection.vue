@@ -1,9 +1,8 @@
 <script setup>
 const checklist = [
-  '按应用拆分虚拟屏，互不遮挡',
   '快捷返回、主页与最近任务',
   '置顶、截屏与窗口状态记忆',
-  'Windows 托盘、深链接与自动更新',
+  'Windows 托盘、开机启动、深链接与自动更新',
 ];
 
 function scrollToDownload() {
