@@ -39,6 +39,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       source_sha: ${{ steps.version.outputs.source_sha }}
       prerelease: ${{ inputs.prerelease }}
+      scrcpy_version: ${{ steps.version.outputs.scrcpy_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,11 +59,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
           PRERELEASE: ${{ inputs.prerelease }}
+          SCRCPY_VERSION_INPUT: ${{ inputs.scrcpy_version }}
         shell: bash
         run: |
           set -euo pipefail
           version="$(node -p "require('./.source/package.json').version")"
           source_sha="$(git -C .source rev-parse HEAD)"
+          scrcpy_input="$SCRCPY_VERSION_INPUT"
+          if [[ -z "$scrcpy_input" ]]; then
+            scrcpy_input="$(gh api repos/Genymobile/scrcpy/releases/latest --jq '.tag_name')"
+          fi
+          scrcpy_version="${scrcpy_input#v}"
+          if [[ -z "$scrcpy_version" ]]; then
+            echo "Failed to resolve scrcpy version" >&2
+            exit 1
+          fi
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
             echo "Unsupported package version: $version" >&2
             exit 1
@@ -73,8 +84,13 @@ jobs:
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Release $tag already exists. Delete the draft or bump the source version." >&2
-            exit 1
+            if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == "true" ]]; then
+              echo "Deleting stale draft release $tag"
+              gh release delete "$tag" --yes
+            else
+              echo "Release $tag already exists. Bump the source version." >&2
+              exit 1
+            fi
           fi
           notes_file="$RUNNER_TEMP/droid-haruka-release-notes.md"
           {
@@ -83,7 +99,7 @@ jobs:
             echo "- Windows x64：NSIS 安装包与便携版"
             echo "- Linux x64：AppImage 与 tar.gz"
             echo "- Android：桌面端安装包内置设备端 APK，并提供独立 APK 附件"
-            echo "- 校验：\`SHA256SUMS.txt\`"
+            echo "- 校验：`SHA256SUMS.txt`"
           } > "$notes_file"
           args=(release create "$tag" "--target" "$GITHUB_SHA" "--title" "Droid Haruka $version" "--notes-file" "$notes_file" "--draft")
           if [[ "$PRERELEASE" == "true" ]]; then
@@ -93,20 +109,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "scrcpy_version=$scrcpy_version" >> "$GITHUB_OUTPUT"
 
-  windows:
+  dist:
     needs: prepare
-    runs-on: windows-latest
-    timeout-minutes: 90
-    env:
-      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      VERSION: ${{ needs.prepare.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
-      CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
-      ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
-      ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-      ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -134,59 +142,23 @@ jobs:
           cache: pnpm
           cache-dependency-path: source/pnpm-lock.yaml
 
-      - name: Set up Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Install Android packages
-        shell: pwsh
-        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-
       - name: Install dependencies
         working-directory: source
-        shell: pwsh
-        run: pnpm install --frozen-lockfile --reporter=append-only
+        run: pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only
 
-      - name: Build Windows virtual camera
+      - name: Build shared dist
         working-directory: source
-        shell: pwsh
-        run: pnpm build:vcam
+        run: pnpm build:dist
 
-      - name: Fetch scrcpy server and adb
-        working-directory: source
-        shell: pwsh
-        env:
-          SCRCPY_VERSION: ${{ inputs.scrcpy_version }}
-        run: |
-          if ($env:SCRCPY_VERSION) {
-            pnpm get-scrcpy -v $env:SCRCPY_VERSION
-          } else {
-            pnpm get-scrcpy
-          }
+      - name: Upload dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: source/dist
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Build release
-        working-directory: source
-        shell: pwsh
-        run: pnpm build:release
-
-      - name: Upload Windows assets
-        shell: pwsh
-        run: |
-          $releaseFiles = Get-ChildItem -LiteralPath source/dist_electron -File | Where-Object {
-            $_.Name -eq "latest.yml" -or $_.Extension -in ".exe", ".blockmap"
-          }
-          if (-not $releaseFiles) {
-            throw "No Windows release files were produced."
-          }
-          $paths = @($releaseFiles | ForEach-Object { $_.FullName })
-          gh release upload $env:RELEASE_TAG @paths --clobber
-
-  linux:
+  android:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -222,8 +194,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: source/pnpm-lock.yaml
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -237,24 +207,177 @@ jobs:
       - name: Install Android packages
         run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Fetch scrcpy server and adb
+        working-directory: source
+        env:
+          SCRCPY_VERSION: ${{ needs.prepare.outputs.scrcpy_version }}
+        run: pnpm get-scrcpy -v "$SCRCPY_VERSION"
+
+      - name: Build Android release
+        working-directory: source
+        run: pnpm android:release
+
+      - name: Upload companion artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: companion
+          path: source/resources/bin/companion
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload companion APK
+        run: |
+          cp source/src/android/app/build/outputs/apk/release/companion-release.apk "droid-haruka-companion-${VERSION}.apk"
+          gh release upload "$RELEASE_TAG" "droid-haruka-companion-${VERSION}.apk" --clobber
+
+  windows:
+    needs:
+      - prepare
+      - dist
+      - android
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: slime7/scrcpy-desktop
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: source
+          fetch-depth: 1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          package_json_file: source/package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: source
+        shell: pwsh
+        run: pnpm install --frozen-lockfile --reporter=append-only
+
+      - name: Download shared dist
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: source/dist
+
+      - name: Download companion APK
+        uses: actions/download-artifact@v8
+        with:
+          name: companion
+          path: source/resources/bin/companion
+
+      - name: Build Windows virtual camera
+        working-directory: source
+        shell: pwsh
+        run: pnpm build:vcam
+
+      - name: Fetch scrcpy server and adb
+        working-directory: source
+        shell: pwsh
+        env:
+          SCRCPY_VERSION: ${{ needs.prepare.outputs.scrcpy_version }}
+        run: pnpm get-scrcpy -v $env:SCRCPY_VERSION
+
+      - name: Build release package
+        working-directory: source
+        shell: pwsh
+        run: pnpm build:package
+
+      - name: Upload Windows assets
+        shell: pwsh
+        run: |
+          $releaseFiles = Get-ChildItem -LiteralPath source/dist_electron -File | Where-Object {
+            $_.Name -eq "latest.yml" -or $_.Extension -in ".exe", ".blockmap"
+          }
+          if (-not $releaseFiles) {
+            throw "No Windows release files were produced."
+          }
+          $paths = @($releaseFiles | ForEach-Object { $_.FullName })
+          gh release upload $env:RELEASE_TAG @paths --clobber
+
+  linux:
+    needs:
+      - prepare
+      - dist
+      - android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: slime7/scrcpy-desktop
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: source
+          fetch-depth: 1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          package_json_file: source/package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+
       - name: Install dependencies
         working-directory: source
         run: pnpm install --frozen-lockfile --reporter=append-only
 
+      - name: Download shared dist
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: source/dist
+
+      - name: Download companion APK
+        uses: actions/download-artifact@v8
+        with:
+          name: companion
+          path: source/resources/bin/companion
+
       - name: Fetch scrcpy server and adb
         working-directory: source
         env:
-          SCRCPY_VERSION: ${{ inputs.scrcpy_version }}
-        run: |
-          if [[ -n "$SCRCPY_VERSION" ]]; then
-            pnpm get-scrcpy -v "$SCRCPY_VERSION"
-          else
-            pnpm get-scrcpy
-          fi
+          SCRCPY_VERSION: ${{ needs.prepare.outputs.scrcpy_version }}
+        run: pnpm get-scrcpy -v "$SCRCPY_VERSION"
 
-      - name: Build release
+      - name: Build release package
         working-directory: source
-        run: pnpm build:release
+        run: pnpm build:package
 
       - name: Upload Linux assets
         run: |
@@ -265,14 +388,13 @@ jobs:
             exit 1
           fi
           gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
-          cp source/src/android/app/build/outputs/apk/release/companion-release.apk "droid-haruka-companion-${VERSION}.apk"
-          gh release upload "$RELEASE_TAG" "droid-haruka-companion-${VERSION}.apk" --clobber
 
   finalize:
     needs:
       - prepare
       - windows
       - linux
+      - android
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
