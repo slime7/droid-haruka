@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "mde-vue": "git+https://github.com/slime7/mde-vue.git#4807ddfbd1d7d179087803f60ef28973de445472",
+    "mde-vue": "git+https://github.com/slime7/mde-vue.git#v26.11.02",
     "vue": "^3.5.39"
   },
   "devDependencies": {
