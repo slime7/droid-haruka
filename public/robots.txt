@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://slime7.github.io/droid-haruka/sitemap.xml

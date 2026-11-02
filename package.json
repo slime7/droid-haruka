@@ -1,0 +1,20 @@
+{
+  "name": "droid-haruka-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Droid Haruka 官网，使用 mde-vue 构建。",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "mde-vue": "git+https://github.com/slime7/mde-vue.git#4807ddfbd1d7d179087803f60ef28973de445472",
+    "vue": "^3.5.39"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
+    "vite": "^8.1.4"
+  }
+}
