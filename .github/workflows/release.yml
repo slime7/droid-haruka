@@ -217,11 +217,37 @@ jobs:
         working-directory: source
         run: pnpm android:release
 
+      - name: Verify release APK
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="src/android/app/build/outputs/apk/release/companion-release.apk"
+          test -f "$apk"
+          aapt="${ANDROID_HOME}/build-tools/36.0.0/aapt"
+          apksigner="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
+          badging="$("$aapt" dump badging "$apk")"
+          if ! grep -Fq "package: name='app.scrcpydesktop.companion'" <<<"$badging"; then
+            echo "Unexpected APK package: expected app.scrcpydesktop.companion" >&2
+            exit 1
+          fi
+          if grep -q "application-debuggable" <<<"$badging"; then
+            echo "Refusing to publish a debuggable APK" >&2
+            exit 1
+          fi
+          if grep -q "versionName='[^']*-debug'" <<<"$badging"; then
+            echo "Refusing to publish a debug-suffixed APK" >&2
+            exit 1
+          fi
+          "$apksigner" verify --verbose "$apk"
+          test -f "resources/bin/companion/release/companion-release.apk"
+          test -f "resources/bin/companion/release/companion-version.json"
+
       - name: Upload companion artifact
         uses: actions/upload-artifact@v7
         with:
           name: companion
-          path: source/resources/bin/companion
+          path: source/resources/bin/companion/release
           if-no-files-found: error
           retention-days: 1
 
@@ -284,7 +310,18 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: companion
-          path: source/resources/bin/companion
+          path: source/resources/bin/companion/release
+
+      - name: Verify companion APK
+        shell: pwsh
+        run: |
+          $directory = "source/resources/bin/companion/release"
+          if (-not (Test-Path (Join-Path $directory "companion-release.apk"))) {
+            throw "Release companion APK is missing."
+          }
+          if (-not (Test-Path (Join-Path $directory "companion-version.json"))) {
+            throw "Release companion version metadata is missing."
+          }
 
       - name: Build Windows virtual camera
         working-directory: source
@@ -367,7 +404,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: companion
-          path: source/resources/bin/companion
+          path: source/resources/bin/companion/release
+
+      - name: Verify companion APK
+        run: |
+          test -f source/resources/bin/companion/release/companion-release.apk
+          test -f source/resources/bin/companion/release/companion-version.json
 
       - name: Fetch scrcpy server and adb
         working-directory: source
