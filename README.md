@@ -13,17 +13,6 @@ Droid Haruka 是一个面向 Windows 与 Linux 的 Android 投屏与多窗口桌
 - 文件与剪贴板：拖放文件、双向剪贴板
 - Windows 虚拟摄像头：把设备相机提供给会议、直播和扫码应用，需要 Windows 11 22H2 及以上
 
-## 程序项目
-
-本仓库包含 Droid Haruka 的官网与发行工作流。客户端由桌面端和设备端两个程序组成：
-
-| 组件 | 说明 |
-| --- | --- |
-| 桌面客户端 | Windows 10 / 11 x64 与 Linux x64 应用，负责设备管理、镜像窗口、虚拟屏、输入转发、文件与剪贴板同步；Windows 版支持系统虚拟摄像头与开机启动 |
-| 设备端采集器 | Android 11 及以上应用，负责画面采集、虚拟屏、通知、剪贴板与文件传输；首次连接时由桌面端安装，部分功能需要 Shizuku |
-
-桌面端基于 Electron 与 Vue 3，使用 WebCodecs 解码设备画面；设备端使用 Kotlin 与 Jetpack Compose。发行包包含 Windows NSIS 安装包、Linux AppImage 与 tar.gz，以及可单独安装的 Android APK。
-
 ## 支持平台
 
 | 平台 | 支持情况 |
@@ -36,6 +25,6 @@ macOS 不在支持范围内。
 
 ## 下载
 
-安装包与 APK 统一发布在 [Releases](https://github.com/slime7/droid-haruka/releases)。桌面端首次连接设备时会自动安装设备端应用，也可以单独下载 APK 安装。发行包附带 `SHA256SUMS.txt` 校验文件。
+在 [Releases](https://github.com/slime7/droid-haruka/releases) 下载 Windows 或 Linux 安装包。首次连接设备时，桌面端会自动安装设备端应用。
 
 问题和建议请提交到 [Issues](https://github.com/slime7/droid-haruka/issues)。

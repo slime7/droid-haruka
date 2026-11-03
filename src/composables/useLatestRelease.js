@@ -7,8 +7,15 @@ const release = ref(null);
 const status = ref('idle');
 let requestStarted = false;
 
+/** 发行容器使用固定标签，版本号从 Release 标题读取。 */
+const RELEASE_VERSION_PATTERN = /(\d+\.\d+\.\d+(?:[-.][0-9A-Za-z.-]+)?)/;
+
 function pickAsset(assets, predicate) {
   return assets.find((asset) => predicate(asset.name)) ?? null;
+}
+
+function releaseVersionOf(value) {
+  return RELEASE_VERSION_PATTERN.exec(String(value?.name ?? ''))?.[1] ?? '';
 }
 
 /**
@@ -48,7 +55,10 @@ export function useLatestRelease() {
       });
   }
 
-  const version = computed(() => release.value?.tag_name ?? 'GitHub Releases');
+  const version = computed(() => {
+    const releaseVersion = releaseVersionOf(release.value);
+    return releaseVersion ? `v${releaseVersion}` : (release.value?.tag_name ?? 'GitHub Releases');
+  });
   const publishedAt = computed(() => {
     const date = release.value?.published_at;
     if (!date) {
@@ -60,9 +70,17 @@ export function useLatestRelease() {
       day: 'numeric',
     }).format(new Date(date));
   });
-  const setupAsset = computed(() => (
-    release.value ? pickAsset(release.value.assets ?? [], (name) => /setup.*\.exe$/i.test(name)) : null
-  ));
+  const setupAsset = computed(() => {
+    if (!release.value) {
+      return null;
+    }
+    const assets = release.value.assets ?? [];
+    const releaseVersion = releaseVersionOf(release.value);
+    return pickAsset(
+      assets,
+      (name) => /setup.*\.exe$/i.test(name) && (!releaseVersion || name.includes(releaseVersion))
+    ) ?? pickAsset(assets, (name) => /setup.*\.exe$/i.test(name));
+  });
   const downloadUrl = computed(() => (
     setupAsset.value?.browser_download_url ?? release.value?.html_url ?? RELEASES_PAGE
   ));
