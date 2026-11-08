@@ -256,8 +256,8 @@ jobs:
           aapt="${ANDROID_HOME}/build-tools/36.0.0/aapt"
           apksigner="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
           badging="$("$aapt" dump badging "$apk")"
-          if ! grep -Fq "package: name='app.scrcpydesktop.companion'" <<<"$badging"; then
-            echo "Unexpected APK package: expected app.scrcpydesktop.companion" >&2
+          if ! grep -Fq "package: name='app.droidharuka'" <<<"$badging"; then
+            echo "Unexpected APK package: expected app.droidharuka" >&2
             exit 1
           fi
           if grep -q "application-debuggable" <<<"$badging"; then
