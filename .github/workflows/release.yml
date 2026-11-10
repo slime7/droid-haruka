@@ -434,10 +434,13 @@ jobs:
         shell: pwsh
         run: |
           $releaseFiles = Get-ChildItem -LiteralPath source/dist_electron -File | Where-Object {
-            $_.Name -eq "latest.yml" -or $_.Extension -in ".exe", ".blockmap"
+            $_.Name -eq "latest.yml" -or $_.Extension -in ".exe", ".blockmap", ".zip"
           }
           if (-not $releaseFiles) {
             throw "No Windows release files were produced."
+          }
+          if (-not ($releaseFiles | Where-Object { $_.Extension -eq ".zip" })) {
+            throw "No Windows unpack archive was produced."
           }
           $paths = @($releaseFiles | ForEach-Object { $_.FullName })
           gh release upload $env:RELEASE_TAG @paths --clobber
@@ -522,7 +525,12 @@ jobs:
       - name: Upload Linux assets
         run: |
           shopt -s nullglob
-          assets=(source/dist_electron/*.AppImage source/dist_electron/*.tar.gz source/dist_electron/latest-linux.yml source/dist_electron/*.blockmap)
+          unpack_archives=(source/dist_electron/*.tar.gz)
+          if [[ ${#unpack_archives[@]} -eq 0 ]]; then
+            echo "No Linux unpack archive was produced." >&2
+            exit 1
+          fi
+          assets=(source/dist_electron/*.AppImage "${unpack_archives[@]}" source/dist_electron/latest-linux.yml source/dist_electron/*.blockmap)
           if [[ ${#assets[@]} -eq 0 ]]; then
             echo "No Linux release files were produced." >&2
             exit 1
@@ -561,8 +569,8 @@ jobs:
             echo
             echo "- 源码版本：\`v${VERSION}\`"
             echo "- 源码提交：\`${SOURCE_SHA}\`"
-            echo "- Windows x64：NSIS 安装包与便携版"
-            echo "- Linux x64：AppImage 与 tar.gz"
+            echo "- Windows x64：NSIS 安装包、便携版与免安装 zip（解压后运行 droid-haruka.exe）"
+            echo "- Linux x64：AppImage 与免安装 tar.gz（解压后运行 droid-haruka）"
             echo "- Android：桌面端安装包内置设备端 APK"
             echo "- 校验：\`SHA256SUMS.txt\`"
           } > "$notes_file"

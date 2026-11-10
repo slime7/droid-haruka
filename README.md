@@ -25,6 +25,6 @@ macOS 不在支持范围内。
 
 ## 下载
 
-在 [Releases](https://github.com/slime7/droid-haruka/releases) 下载 Windows 或 Linux 安装包。首次连接设备时，桌面端会自动安装设备端应用。
+在 [Releases](https://github.com/slime7/droid-haruka/releases) 下载 Windows 或 Linux 安装包；也可以选择免安装压缩包，解压后直接运行。首次连接设备时，桌面端会自动安装设备端应用。
 
 问题和建议请提交到 [Issues](https://github.com/slime7/droid-haruka/issues)。
