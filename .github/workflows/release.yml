@@ -13,11 +13,6 @@ on:
         required: false
         default: master
         type: string
-      scrcpy_version:
-        description: 可选的 scrcpy 版本，留空使用最新版
-        required: false
-        default: ""
-        type: string
       prerelease:
         description: 标记为预发布
         required: true
@@ -39,7 +34,6 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       source_sha: ${{ steps.version.outputs.source_sha }}
       prerelease: ${{ inputs.prerelease }}
-      scrcpy_version: ${{ steps.version.outputs.scrcpy_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -96,7 +90,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_VERSION: ${{ steps.source.outputs.expected_version }}
           PRERELEASE: ${{ inputs.prerelease }}
-          SCRCPY_VERSION_INPUT: ${{ inputs.scrcpy_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -104,15 +97,6 @@ jobs:
           source_sha="$(git -C .source rev-parse HEAD)"
           if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
             echo "Checked out source version $version does not match requested $EXPECTED_VERSION" >&2
-            exit 1
-          fi
-          scrcpy_input="$SCRCPY_VERSION_INPUT"
-          if [[ -z "$scrcpy_input" ]]; then
-            scrcpy_input="$(gh api repos/Genymobile/scrcpy/releases/latest --jq '.tag_name')"
-          fi
-          scrcpy_version="${scrcpy_input#v}"
-          if [[ -z "$scrcpy_version" ]]; then
-            echo "Failed to resolve scrcpy version" >&2
             exit 1
           fi
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
@@ -139,7 +123,6 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
-          echo "scrcpy_version=$scrcpy_version" >> "$GITHUB_OUTPUT"
 
   dist:
     needs: prepare
@@ -188,12 +171,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  scrcpy:
+  adb:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -209,24 +190,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Fetch scrcpy server and adb for Windows and Linux
+      - name: Fetch adb for Windows and Linux
         working-directory: source
-        env:
-          SCRCPY_VERSION: ${{ needs.prepare.outputs.scrcpy_version }}
-        run: node scripts/get-scrcpy.js -v "$SCRCPY_VERSION" --platform all
+        run: node scripts/get-adb.js --platform all
 
-      - name: Verify shared scrcpy resources
+      - name: Verify adb resources
         working-directory: source
         run: |
-          test -f resources/bin/scrcpy-server
           test -f resources/bin/win32/adb.exe
+          test -f resources/bin/win32/AdbWinApi.dll
+          test -f resources/bin/win32/AdbWinUsbApi.dll
           test -f resources/bin/linux-x86_64/adb
-          test -f resources/bin/scrcpy-version.json
 
-      - name: Upload scrcpy resources
+      - name: Upload adb resources
         uses: actions/upload-artifact@v7
         with:
-          name: scrcpy
+          name: adb
           path: source/resources/bin
           if-no-files-found: error
           retention-days: 1
@@ -234,7 +213,7 @@ jobs:
   android:
     needs:
       - prepare
-      - scrcpy
+      - adb
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -281,18 +260,18 @@ jobs:
       - name: Install Android packages
         run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Download scrcpy resources
+      - name: Download adb resources
         uses: actions/download-artifact@v8
         with:
-          name: scrcpy
+          name: adb
           path: source/resources/bin
 
-      - name: Verify scrcpy resources
+      - name: Verify adb resources
         run: |
-          test -f source/resources/bin/scrcpy-server
           test -f source/resources/bin/win32/adb.exe
+          test -f source/resources/bin/win32/AdbWinApi.dll
+          test -f source/resources/bin/win32/AdbWinUsbApi.dll
           test -f source/resources/bin/linux-x86_64/adb
-          test -f source/resources/bin/scrcpy-version.json
 
       - name: Build Android release
         working-directory: source
@@ -337,7 +316,7 @@ jobs:
       - prepare
       - dist
       - android
-      - scrcpy
+      - adb
     runs-on: windows-latest
     timeout-minutes: 60
     env:
@@ -388,10 +367,10 @@ jobs:
           name: companion
           path: source/resources/bin/companion/release
 
-      - name: Download scrcpy resources
+      - name: Download adb resources
         uses: actions/download-artifact@v8
         with:
-          name: scrcpy
+          name: adb
           path: source/resources/bin
 
       - name: Verify companion APK
@@ -405,25 +384,25 @@ jobs:
             throw "Release companion version metadata is missing."
           }
 
+      - name: Verify adb resources
+        shell: pwsh
+        run: |
+          $required = @(
+            "source/resources/bin/win32/adb.exe",
+            "source/resources/bin/win32/AdbWinApi.dll",
+            "source/resources/bin/win32/AdbWinUsbApi.dll",
+            "source/resources/bin/linux-x86_64/adb"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing adb resource: $path"
+            }
+          }
+
       - name: Build Windows virtual camera
         working-directory: source
         shell: pwsh
         run: pnpm build:vcam
-
-      - name: Verify scrcpy resources
-        shell: pwsh
-        run: |
-          $required = @(
-            "source/resources/bin/scrcpy-server",
-            "source/resources/bin/win32/adb.exe",
-            "source/resources/bin/linux-x86_64/adb",
-            "source/resources/bin/scrcpy-version.json"
-          )
-          foreach ($path in $required) {
-            if (-not (Test-Path -LiteralPath $path)) {
-              throw "Missing scrcpy resource: $path"
-            }
-          }
 
       - name: Build release package
         working-directory: source
@@ -450,7 +429,7 @@ jobs:
       - prepare
       - dist
       - android
-      - scrcpy
+      - adb
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -499,10 +478,10 @@ jobs:
           name: companion
           path: source/resources/bin/companion/release
 
-      - name: Download scrcpy resources
+      - name: Download adb resources
         uses: actions/download-artifact@v8
         with:
-          name: scrcpy
+          name: adb
           path: source/resources/bin
 
       - name: Verify companion APK
@@ -510,12 +489,12 @@ jobs:
           test -f source/resources/bin/companion/release/companion-release.apk
           test -f source/resources/bin/companion/release/companion-version.json
 
-      - name: Verify scrcpy resources
+      - name: Verify adb resources
         run: |
-          test -f source/resources/bin/scrcpy-server
           test -f source/resources/bin/win32/adb.exe
+          test -f source/resources/bin/win32/AdbWinApi.dll
+          test -f source/resources/bin/win32/AdbWinUsbApi.dll
           test -f source/resources/bin/linux-x86_64/adb
-          test -f source/resources/bin/scrcpy-version.json
           chmod +x source/resources/bin/linux-x86_64/adb
 
       - name: Build release package
