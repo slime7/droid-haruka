@@ -211,9 +211,7 @@ jobs:
           retention-days: 1
 
   android:
-    needs:
-      - prepare
-      - adb
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -259,19 +257,6 @@ jobs:
 
       - name: Install Android packages
         run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-
-      - name: Download adb resources
-        uses: actions/download-artifact@v8
-        with:
-          name: adb
-          path: source/resources/bin
-
-      - name: Verify adb resources
-        run: |
-          test -f source/resources/bin/win32/adb.exe
-          test -f source/resources/bin/win32/AdbWinApi.dll
-          test -f source/resources/bin/win32/AdbWinUsbApi.dll
-          test -f source/resources/bin/linux-x86_64/adb
 
       - name: Build Android release
         working-directory: source
